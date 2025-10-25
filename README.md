@@ -40,6 +40,12 @@
 - ✅ 消息时间戳
 - ✅ 响应式设计
 - ✅ 优雅的用户界面
+- ✅ **聊天记录保存**（新功能）
+  - 服务端保存最近100条消息
+  - 客户端使用 localStorage 本地保存
+  - 新用户加入时可查看历史消息
+  - 支持清除本地聊天记录
+  - 刷新页面后消息不丢失
 
 ## 快速开始
 
@@ -114,6 +120,7 @@ npm run dev
   ```
 
 #### 服务端发送的事件：
+- `message-history` - 发送历史消息（用户加入时）
 - `user-joined` - 新用户加入
 - `user-left` - 用户离开
 - `chat-message` - 接收聊天消息
@@ -127,7 +134,16 @@ npm run dev
   {
     "status": "ok",
     "users": 5,
+    "messages": 42,
     "timestamp": "2025-10-25T03:30:00.000Z"
+  }
+  ```
+
+- `GET /messages` - 获取聊天历史记录
+  ```json
+  {
+    "messages": [...],
+    "total": 42
   }
   ```
 
@@ -188,7 +204,8 @@ const socket = io('http://localhost:3000');
 ## 下一步改进建议
 
 - [ ] 添加用户认证
-- [ ] 消息持久化（数据库）
+- [x] 消息持久化（内存 + localStorage）✅ 已完成
+- [ ] 使用数据库持久化（MongoDB/PostgreSQL）
 - [ ] 私聊功能
 - [ ] 文件/图片分享
 - [ ] 表情符号支持
