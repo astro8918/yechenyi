@@ -14,7 +14,39 @@ function App() {
   const messagesEndRef = useRef(null);
   const typingTimeoutRef = useRef(null);
 
+  // 初始化：从 localStorage 加载历史消息
   useEffect(() => {
+    const savedMessages = localStorage.getItem('43chat-messages');
+    if (savedMessages) {
+      try {
+        const parsed = JSON.parse(savedMessages);
+        setMessages(parsed);
+      } catch (error) {
+        console.error('加载历史消息失败:', error);
+      }
+    }
+  }, []);
+
+  // 保存消息到 localStorage
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('43chat-messages', JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    // 监听服务器发送的历史消息
+    socket.on('message-history', (history) => {
+      setMessages((prev) => {
+        // 合并服务器历史消息和本地消息，去重
+        const messageMap = new Map();
+        [...prev, ...history].forEach((msg) => {
+          messageMap.set(msg.id, msg);
+        });
+        return Array.from(messageMap.values()).sort((a, b) => a.id - b.id);
+      });
+    });
+
     // 监听用户加入
     socket.on('user-joined', (data) => {
       setMessages((prev) => [
@@ -65,6 +97,7 @@ function App() {
     });
 
     return () => {
+      socket.off('message-history');
       socket.off('user-joined');
       socket.off('user-left');
       socket.off('chat-message');
@@ -123,6 +156,13 @@ function App() {
     });
   };
 
+  const handleClearHistory = () => {
+    if (window.confirm('确定要清除所有本地聊天记录吗？')) {
+      setMessages([]);
+      localStorage.removeItem('43chat-messages');
+    }
+  };
+
   if (!isJoined) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center p-4">
@@ -171,11 +211,20 @@ function App() {
             <h1 className="text-2xl font-bold text-gray-800">43Chat</h1>
             <p className="text-sm text-gray-600">欢迎, {username}</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-600">在线用户</p>
-            <p className="text-xl font-semibold text-blue-500">
-              {onlineUsers.length}
-            </p>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={handleClearHistory}
+              className="text-sm text-red-600 hover:text-red-700 font-medium transition"
+              title="清除本地聊天记录"
+            >
+              清除记录
+            </button>
+            <div className="text-right">
+              <p className="text-sm text-gray-600">在线用户</p>
+              <p className="text-xl font-semibold text-blue-500">
+                {onlineUsers.length}
+              </p>
+            </div>
           </div>
         </div>
 

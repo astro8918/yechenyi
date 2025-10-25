@@ -18,6 +18,9 @@ app.use(express.json());
 // 存储在线用户
 const users = new Map();
 
+// 存储聊天历史记录（最多保存100条）
+const messageHistory = [];
+
 // Socket.io 连接处理
 io.on('connection', (socket) => {
   console.log('用户连接:', socket.id);
@@ -26,6 +29,11 @@ io.on('connection', (socket) => {
   socket.on('join', (username) => {
     users.set(socket.id, username);
     console.log(`${username} 加入聊天室`);
+
+    // 发送历史消息给新加入的用户
+    if (messageHistory.length > 0) {
+      socket.emit('message-history', messageHistory);
+    }
 
     // 广播新用户加入
     io.emit('user-joined', {
@@ -50,6 +58,14 @@ io.on('connection', (socket) => {
       message: data.message,
       timestamp: new Date().toISOString()
     };
+
+    // 保存消息到历史记录
+    messageHistory.push(message);
+
+    // 限制历史记录最多保存100条
+    if (messageHistory.length > 100) {
+      messageHistory.shift();
+    }
 
     // 广播消息给所有客户端
     io.emit('chat-message', message);
@@ -84,7 +100,16 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     users: users.size,
+    messages: messageHistory.length,
     timestamp: new Date().toISOString()
+  });
+});
+
+// 获取聊天历史记录
+app.get('/messages', (req, res) => {
+  res.json({
+    messages: messageHistory,
+    total: messageHistory.length
   });
 });
 
